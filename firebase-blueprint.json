@@ -1,0 +1,400 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Class 8B SMPN 18 Kota Bogor member profile and role data",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "teacher",
+            "ketua_kelas",
+            "wakil_ketua",
+            "bendahara_1",
+            "bendahara_2",
+            "sekretaris_1",
+            "sekretaris_2",
+            "siswa"
+          ]
+        },
+        "coins": {
+          "type": "number"
+        },
+        "equippedBanner": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "equippedTitle": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "verifiedBy": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "username",
+        "displayName",
+        "role",
+        "coins",
+        "equippedBanner",
+        "equippedTitle",
+        "verifiedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VisitorReview": {
+      "title": "VisitorReview",
+      "description": "Visitor review and impression on Kelas 8B landing page",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "visitorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "relation": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "message": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        "rating": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "visitorName",
+        "relation",
+        "message",
+        "rating",
+        "createdAt"
+      ]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Digital class announcement managed by officers, teacher, or owner",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "authorRole": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "content": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "authorName",
+        "authorRole",
+        "title",
+        "content",
+        "category",
+        "pinned",
+        "createdAt"
+      ]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Class 8B academic assignment",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1500
+        },
+        "dueDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "pointsReward": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["aktif", "selesai"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "subject",
+        "title",
+        "description",
+        "dueDate",
+        "pointsReward",
+        "status",
+        "createdAt"
+      ]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily attendance record for Class 8B",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "status": {
+          "type": "string",
+          "enum": ["hadir", "izin", "sakit", "alfa"]
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "authorId",
+        "studentName",
+        "date",
+        "status",
+        "note",
+        "createdAt"
+      ]
+    },
+    "GroupMessage": {
+      "title": "GroupMessage",
+      "description": "Real-time 24/7 group chat message for Class 8B",
+      "type": "object",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "senderRole": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "senderBanner": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "senderTitle": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "senderId",
+        "senderName",
+        "senderRole",
+        "senderBanner",
+        "senderTitle",
+        "text",
+        "createdAt"
+      ]
+    },
+    "DirectMessage": {
+      "title": "DirectMessage",
+      "description": "Private message between classmates in Class 8B",
+      "type": "object",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "recipientId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "recipientName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "senderId",
+        "senderName",
+        "recipientId",
+        "recipientName",
+        "text",
+        "createdAt"
+      ]
+    },
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "description": "Owner and Teacher Bu Aida 45-feature control state and verification codes",
+      "type": "object",
+      "properties": {
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "payloadJson": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["updatedBy", "payloadJson", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Class 8B student, officer, teacher, and owner profiles"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/VisitorReview" },
+      "description": "Visitor reviews on the public landing page"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Digital announcements for Class 8B"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": { "$ref": "#/entities/Assignment" },
+      "description": "Student assignments for Class 8B"
+    },
+    "/attendance/{recordId}": {
+      "schema": { "$ref": "#/entities/AttendanceRecord" },
+      "description": "Attendance logs for Class 8B"
+    },
+    "/groupMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/GroupMessage" },
+      "description": "24/7 Live Group Chat messages for Class 8B"
+    },
+    "/directMessages/{dmId}": {
+      "schema": { "$ref": "#/entities/DirectMessage" },
+      "description": "Private direct messages between Class 8B members"
+    },
+    "/systemConfig/{configId}": {
+      "schema": { "$ref": "#/entities/SystemConfig" },
+      "description": "Owner and Teacher 45-feature panel state and verification codes"
+    }
+  }
+}

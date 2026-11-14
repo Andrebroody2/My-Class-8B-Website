@@ -1,0 +1,320 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'blackjacknet034@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+    function isTeacherOrOfficer() {
+      return isAdmin() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+          'owner', 'teacher', 'ketua_kelas', 'wakil_ketua', 'bendahara_1', 'bendahara_2', 'sekretaris_1', 'sekretaris_2'
+        ]
+      );
+    }
+    function isOwnerOrTeacher() {
+      return isAdmin() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'teacher']
+      );
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'username', 'displayName', 'role', 'coins', 'equippedBanner', 'equippedTitle', 'verifiedBy', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'username', 'displayName', 'role', 'coins', 'equippedBanner', 'equippedTitle', 'verifiedBy', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.username is string && data.username.size() >= 2 && data.username.size() <= 50 &&
+        data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80 &&
+        data.role is string && data.role in ['owner', 'teacher', 'ketua_kelas', 'wakil_ketua', 'bendahara_1', 'bendahara_2', 'sekretaris_1', 'sekretaris_2', 'siswa'] &&
+        data.coins is number && data.coins >= 0 && data.coins <= 10000000 &&
+        data.equippedBanner is string && data.equippedBanner.size() >= 1 && data.equippedBanner.size() <= 64 &&
+        data.equippedTitle is string && data.equippedTitle.size() >= 1 && data.equippedTitle.size() <= 64 &&
+        data.verifiedBy is string && data.verifiedBy.size() >= 1 && data.verifiedBy.size() <= 64 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidVisitorReview(data) {
+      return data.keys().hasAll(['authorId', 'visitorName', 'relation', 'message', 'rating', 'createdAt']) &&
+        data.keys().hasOnly(['authorId', 'visitorName', 'relation', 'message', 'rating', 'createdAt']) &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+        data.visitorName is string && data.visitorName.size() >= 2 && data.visitorName.size() <= 60 &&
+        data.relation is string && data.relation.size() >= 2 && data.relation.size() <= 40 &&
+        data.message is string && data.message.size() >= 3 && data.message.size() <= 500 &&
+        data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['authorId', 'authorName', 'authorRole', 'title', 'content', 'category', 'pinned', 'createdAt']) &&
+        data.keys().hasOnly(['authorId', 'authorName', 'authorRole', 'title', 'content', 'category', 'pinned', 'createdAt']) &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+        data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 80 &&
+        data.authorRole is string && data.authorRole.size() >= 2 && data.authorRole.size() <= 40 &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 120 &&
+        data.content is string && data.content.size() >= 3 && data.content.size() <= 2000 &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 40 &&
+        data.pinned is bool &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAssignment(data) {
+      return data.keys().hasAll(['authorId', 'subject', 'title', 'description', 'dueDate', 'pointsReward', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['authorId', 'subject', 'title', 'description', 'dueDate', 'pointsReward', 'status', 'createdAt']) &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+        data.subject is string && data.subject.size() >= 2 && data.subject.size() <= 60 &&
+        data.title is string && data.title.size() >= 3 && data.title.size() <= 120 &&
+        data.description is string && data.description.size() >= 3 && data.description.size() <= 1500 &&
+        data.dueDate is string && data.dueDate.size() >= 1 && data.dueDate.size() <= 40 &&
+        data.pointsReward is number && data.pointsReward >= 0 && data.pointsReward <= 5000 &&
+        data.status is string && data.status in ['aktif', 'selesai'] &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAttendanceRecord(data) {
+      return data.keys().hasAll(['authorId', 'studentName', 'date', 'status', 'note', 'createdAt']) &&
+        data.keys().hasOnly(['authorId', 'studentName', 'date', 'status', 'note', 'createdAt']) &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 &&
+        data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 80 &&
+        data.date is string && data.date.size() >= 4 && data.date.size() <= 20 &&
+        data.status is string && data.status in ['hadir', 'izin', 'sakit', 'alfa'] &&
+        data.note is string && data.note.size() <= 200 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidGroupMessage(data) {
+      return data.keys().hasAll(['senderId', 'senderName', 'senderRole', 'senderBanner', 'senderTitle', 'text', 'createdAt']) &&
+        data.keys().hasOnly(['senderId', 'senderName', 'senderRole', 'senderBanner', 'senderTitle', 'text', 'createdAt']) &&
+        data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 &&
+        data.senderName is string && data.senderName.size() >= 2 && data.senderName.size() <= 80 &&
+        data.senderRole is string && data.senderRole.size() >= 2 && data.senderRole.size() <= 40 &&
+        data.senderBanner is string && data.senderBanner.size() >= 1 && data.senderBanner.size() <= 64 &&
+        data.senderTitle is string && data.senderTitle.size() >= 1 && data.senderTitle.size() <= 64 &&
+        data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidDirectMessage(data) {
+      return data.keys().hasAll(['senderId', 'senderName', 'recipientId', 'recipientName', 'text', 'createdAt']) &&
+        data.keys().hasOnly(['senderId', 'senderName', 'recipientId', 'recipientName', 'text', 'createdAt']) &&
+        data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 &&
+        data.senderName is string && data.senderName.size() >= 2 && data.senderName.size() <= 80 &&
+        data.recipientId is string && data.recipientId.size() >= 1 && data.recipientId.size() <= 128 &&
+        data.recipientName is string && data.recipientName.size() >= 2 && data.recipientName.size() <= 80 &&
+        data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidSystemConfig(data) {
+      return data.keys().hasAll(['updatedBy', 'payloadJson', 'updatedAt']) &&
+        data.keys().hasOnly(['updatedBy', 'payloadJson', 'updatedAt']) &&
+        data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 128 &&
+        data.payloadJson is string && data.payloadJson.size() >= 2 && data.payloadJson.size() <= 20000 &&
+        data.updatedAt is timestamp;
+    }
+
+    // Admins lookup collection
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isAdmin() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if isAdmin() && isValidId(adminId);
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isVerifiedUser() && resource.data.uid == request.auth.uid;
+      allow create: if isVerifiedUser() && isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (incoming().role == 'siswa' || isAdmin());
+      allow update: if isVerifiedUser() && isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            request.auth.uid == userId &&
+            incoming().role == existing().role &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'coins', 'equippedBanner', 'equippedTitle', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // Visitor Reviews collection
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && resource.data.rating >= 1;
+      allow list: if resource.data.rating >= 1;
+      allow create: if isVerifiedUser() && isValidId(reviewId) &&
+        isValidVisitorReview(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(reviewId) &&
+        isValidVisitorReview(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (request.auth.uid == existing().authorId && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'rating']))
+        );
+      allow delete: if isAdmin() && isValidId(reviewId);
+    }
+
+    // Announcements collection
+    match /announcements/{announcementId} {
+      allow get: if isVerifiedUser() && isValidId(announcementId) && resource.data.authorId is string;
+      allow list: if isVerifiedUser() && resource.data.authorId is string;
+      allow create: if isVerifiedUser() && isValidId(announcementId) &&
+        isValidAnnouncement(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        isTeacherOrOfficer();
+      allow update: if isVerifiedUser() && isValidId(announcementId) &&
+        isValidAnnouncement(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (request.auth.uid == existing().authorId && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'pinned']))
+        );
+      allow delete: if isOwnerOrTeacher() && isValidId(announcementId);
+    }
+
+    // Assignments collection
+    match /assignments/{assignmentId} {
+      allow get: if isVerifiedUser() && isValidId(assignmentId) && resource.data.status in ['aktif', 'selesai'];
+      allow list: if isVerifiedUser() && resource.data.status in ['aktif', 'selesai'];
+      allow create: if isVerifiedUser() && isValidId(assignmentId) &&
+        isValidAssignment(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        isTeacherOrOfficer();
+      allow update: if isVerifiedUser() && isValidId(assignmentId) &&
+        isValidAssignment(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (
+            existing().status != 'selesai' &&
+            isTeacherOrOfficer() &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'dueDate', 'status'])
+          )
+        );
+      allow delete: if isOwnerOrTeacher() && isValidId(assignmentId);
+    }
+
+    // Attendance collection
+    match /attendance/{recordId} {
+      allow get: if isVerifiedUser() && isValidId(recordId) && resource.data.status in ['hadir', 'izin', 'sakit', 'alfa'];
+      allow list: if isVerifiedUser() && resource.data.status in ['hadir', 'izin', 'sakit', 'alfa'];
+      allow create: if isVerifiedUser() && isValidId(recordId) &&
+        isValidAttendanceRecord(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        isTeacherOrOfficer();
+      allow update: if isVerifiedUser() && isValidId(recordId) &&
+        isValidAttendanceRecord(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (isTeacherOrOfficer() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'note']))
+        );
+      allow delete: if isOwnerOrTeacher() && isValidId(recordId);
+    }
+
+    // Group Messages (24/7 Live Chat)
+    match /groupMessages/{messageId} {
+      allow get: if isVerifiedUser() && isValidId(messageId) && resource.data.senderId is string;
+      allow list: if isVerifiedUser() && resource.data.senderId is string;
+      allow create: if isVerifiedUser() && isValidId(messageId) &&
+        isValidGroupMessage(incoming()) &&
+        incoming().senderId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isVerifiedUser() && isValidId(messageId) &&
+        isValidGroupMessage(incoming()) &&
+        incoming().senderId == existing().senderId &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (request.auth.uid == existing().senderId && incoming().diff(existing()).affectedKeys().hasOnly(['text']))
+        );
+      allow delete: if isValidId(messageId) && (isOwnerOrTeacher() || (isVerifiedUser() && existing().senderId == request.auth.uid));
+    }
+
+    // Direct Messages (Private Chat)
+    match /directMessages/{dmId} {
+      allow get: if isVerifiedUser() && isValidId(dmId) && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isVerifiedUser() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid
+      );
+      allow create: if isVerifiedUser() && isValidId(dmId) &&
+        isValidDirectMessage(incoming()) &&
+        incoming().senderId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(incoming().recipientId));
+      allow update: if isVerifiedUser() && isValidId(dmId) &&
+        isValidDirectMessage(incoming()) &&
+        incoming().senderId == existing().senderId &&
+        incoming().recipientId == existing().recipientId &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (request.auth.uid == existing().senderId && incoming().diff(existing()).affectedKeys().hasOnly(['text']))
+        );
+      allow delete: if isValidId(dmId) && (isAdmin() || (isVerifiedUser() && existing().senderId == request.auth.uid));
+    }
+
+    // System Config (Owner & Bu Aida 45 Features & Verification Codes)
+    match /systemConfig/{configId} {
+      allow get: if isVerifiedUser() && isValidId(configId) && resource.data.updatedBy is string;
+      allow list: if isVerifiedUser() && resource.data.updatedBy is string;
+      allow create: if isVerifiedUser() && isValidId(configId) &&
+        isValidSystemConfig(incoming()) &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        isOwnerOrTeacher();
+      allow update: if isVerifiedUser() && isValidId(configId) &&
+        isValidSystemConfig(incoming()) &&
+        incoming().updatedBy == request.auth.uid &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (isOwnerOrTeacher() && incoming().diff(existing()).affectedKeys().hasOnly(['updatedBy', 'payloadJson', 'updatedAt']))
+        );
+      allow delete: if isAdmin() && isValidId(configId);
+    }
+  }
+}

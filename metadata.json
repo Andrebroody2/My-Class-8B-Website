@@ -1,0 +1,6 @@
+{
+  "name": "Portal Digital Kelas 8B — SMPN 18 Kota Bogor",
+  "description": "Platform resmi Kelas 8B SMP Negeri 18 Kota Bogor: Manajemen Tugas, Presensi, Live Group Chat 24/7, Pesan Pribadi, Kuis Kurikulum Kelas 8, Toko Koin Eksklusif, dan 45 Fitur Panel Kontrol Owner & Wali Kelas (Bu Aida).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
